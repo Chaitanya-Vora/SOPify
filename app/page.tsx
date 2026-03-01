@@ -5,10 +5,60 @@ import { motion, useInView, AnimatePresence } from 'framer-motion'
 import {
     ArrowRight, Menu, X, Play, Check, ChevronUp,
     Share2, Search, Smartphone, ExternalLink,
-    FileText, Zap, Users, Shield, Star
+    FileText, Zap, Users, Shield, Star, Video, Sparkles
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/Badge'
+
+// =====================
+// NEW COMPONENTS
+// =====================
+function CountUp({ target, suffix = '' }: { target: number, suffix?: string }) {
+    const [count, setCount] = useState(0)
+    const ref = useRef(null)
+    const inView = useInView(ref, { once: true })
+    useEffect(() => {
+        if (!inView) return
+        let start = 0
+        const step = target / 40
+        const timer = setInterval(() => {
+            start += step
+            if (start >= target) { setCount(target); clearInterval(timer) }
+            else setCount(Math.floor(start))
+        }, 30)
+        return () => clearInterval(timer)
+    }, [inView, target])
+    return <span ref={ref}>{count.toLocaleString()}{suffix}</span>
+}
+
+function TerminalAnimation() {
+    const ref = useRef(null)
+    const inView = useInView(ref)
+    const lines = [
+        { text: '$ Recording screen... 00:45', color: '#4A4A4A', delay: 0 },
+        { text: '✓ Recording complete. Analyzing 45 screenshots...', color: '#22C55E', delay: 0.8 },
+        { text: '⚡ AI generating step descriptions...', color: '#818CF8', delay: 1.6 },
+        { text: '✓ Step 1: Navigate to GST Portal and login', color: '#F9F9F9', delay: 2.4 },
+        { text: '✓ Step 2: Click "File Returns" in navigation', color: '#F9F9F9', delay: 2.8 },
+        { text: '✓ Step 3: Select GSTR-1 and return period', color: '#F9F9F9', delay: 3.2 },
+        { text: '✦ Published to SOP Library ✓', color: '#6366F1', delay: 3.8 },
+    ]
+    return (
+        <div ref={ref} className="bg-[#0D0D0D] rounded-xl border border-[#1F1F1F] p-4 font-mono text-xs space-y-1.5 min-h-[160px]">
+            {inView && lines.map((line, i) => (
+                <motion.p
+                    key={i}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: line.delay, duration: 0.3 }}
+                    style={{ color: line.color }}
+                >
+                    {line.text}
+                </motion.p>
+            ))}
+        </div>
+    )
+}
 
 // =====================
 // ANIMATION HELPERS
@@ -125,6 +175,28 @@ function Navbar() {
 // =====================
 // PRODUCT MOCKUP
 // =====================
+function FloatingMockup() {
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4, ease: 'easeOut' }}
+            className="relative max-w-4xl mx-auto"
+        >
+            <motion.div
+                animate={{ y: [0, -10, 0] }}
+                transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 1.2 }}
+            >
+                {/* glow behind mockup */}
+                <div className="absolute -inset-6 rounded-3xl bg-[#6366F1] opacity-[0.08] blur-[80px] pointer-events-none" />
+                <div className="relative">
+                    <ProductMockup />
+                </div>
+            </motion.div>
+        </motion.div>
+    )
+}
+
 function ProductMockup() {
     const sopItems = [
         { cat: 'GST', title: 'File GSTR-1 on GST Portal', steps: 6, creator: 'RS', views: 142 },
@@ -434,8 +506,10 @@ export default function LandingPage() {
 
             {/* ── HERO ─────────────────────────────────────────── */}
             <section className="min-h-screen flex flex-col items-center justify-center text-center pt-16 pb-20 relative hero-dot-pattern">
-                {/* Indigo radial glow */}
-                <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full bg-[#6366F1] opacity-[0.06] blur-[120px] pointer-events-none" />
+                {/* Background glows */}
+                <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[500px] rounded-full bg-[#6366F1] opacity-[0.07] blur-[140px] pointer-events-none" />
+                <div className="absolute top-1/3 left-1/3 w-[400px] h-[400px] rounded-full bg-[#8B5CF6] opacity-[0.04] blur-[100px] pointer-events-none" />
+                <div className="absolute top-1/2 right-1/4 w-[300px] h-[300px] rounded-full bg-[#06B6D4] opacity-[0.03] blur-[100px] pointer-events-none" />
 
                 <div className="container-max relative z-10">
                     <motion.div
@@ -444,16 +518,17 @@ export default function LandingPage() {
                         transition={{ duration: 0.6 }}
                     >
                         {/* Announcement pill */}
-                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[rgba(99,102,241,0.12)] border border-[rgba(99,102,241,0.25)] mb-8">
-                            <span className="text-[#818CF8] text-xs font-mono">✦ Built for Indian CA Firms</span>
+                        <div className="gradient-border-pill inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-8">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] animate-pulse" />
+                            <span className="text-[#818CF8] text-xs font-mono">Built for Indian CA Firms</span>
                         </div>
 
                         {/* Hero headline */}
-                        <h1 className="text-7xl font-extrabold tracking-tight leading-none mb-6" style={{ letterSpacing: '-0.03em' }}>
+                        <h1 className="text-7xl font-extrabold tracking-tight leading-none mb-6" style={{ letterSpacing: '-0.04em' }}>
                             <span className="text-[#F9F9F9]">Your firm's knowledge,</span>
                             <br />
                             <span className="text-[#F9F9F9]">finally </span>
-                            <span className="text-[#6366F1]">captured.</span>
+                            <span className="gradient-text text-glow">captured.</span>
                         </h1>
 
                         {/* Subheadline */}
@@ -462,13 +537,13 @@ export default function LandingPage() {
                         </p>
 
                         {/* CTAs */}
-                        <div className="flex items-center gap-4 justify-center flex-wrap mb-16">
-                            <Link href="/app/create">
+                        <div className="flex items-center gap-4 justify-center flex-wrap mb-12">
+                            <Link href="/app/record">
                                 <motion.button
                                     whileTap={{ scale: 0.97 }}
                                     className="h-14 px-8 rounded-xl bg-[#6366F1] text-white font-semibold text-sm hover:bg-[#818CF8] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] transition-all duration-150 flex items-center gap-2"
                                 >
-                                    Create Your First SOP <ArrowRight className="w-4 h-4" />
+                                    Record your screen. AI writes the SOP. Done. <ArrowRight className="w-4 h-4" />
                                 </motion.button>
                             </Link>
                             <Link href="/app/library">
@@ -480,23 +555,27 @@ export default function LandingPage() {
                                 </motion.button>
                             </Link>
                         </div>
+
+                        <div className="flex items-center gap-8 justify-center mb-12 flex-wrap">
+                            {[
+                                { num: 500, label: 'CA Firms', suffix: '+' },
+                                { num: 12000, label: 'SOPs Created', suffix: '+' },
+                                { num: 2, label: 'Avg. SOP creation time', suffix: ' min' },
+                            ].map((stat, i) => (
+                                <div key={i} className="text-center">
+                                    <p className="text-2xl font-bold text-[#F9F9F9] tracking-tight">
+                                        <CountUp target={stat.num} suffix={stat.suffix} />
+                                    </p>
+                                    <p className="text-xs text-[#4A4A4A] font-mono mt-0.5">{stat.label}</p>
+                                </div>
+                            ))}
+                        </div>
                     </motion.div>
 
                     {/* Product mockup */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 40 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, delay: 0.3 }}
-                        animate-float
-                        style={{ animation: 'float 4s ease-in-out infinite' }}
-                        className="relative max-w-4xl mx-auto"
-                    >
-                        {/* Indigo glow behind mockup */}
-                        <div className="absolute -inset-4 rounded-3xl bg-[#6366F1] opacity-10 blur-[60px]" />
-                        <div className="relative">
-                            <ProductMockup />
-                        </div>
-                    </motion.div>
+                    <div className="mt-8">
+                        <FloatingMockup />
+                    </div>
                 </div>
             </section>
 
@@ -505,23 +584,19 @@ export default function LandingPage() {
                 <p className="text-center text-xs font-mono text-[#4A4A4A] mb-6 tracking-widest uppercase">
                     Trusted by CA professionals across India
                 </p>
-                <div className="relative">
-                    <div className="flex animate-marquee gap-16 whitespace-nowrap">
-                        {[...Array(2)].map((_, i) => (
-                            <div key={i} className="flex gap-16 items-center">
-                                {[
-                                    'S.R. Batliboi & Co.',
-                                    'Lodha & Co.',
-                                    'Nanubhai & Co.',
-                                    'PKF India',
-                                    'MSKA & Associates',
-                                    'Deloitte India',
-                                    'Walker Chandiok',
-                                    'A.F. Ferguson & Co.',
-                                ].map(firm => (
-                                    <span key={firm} className="text-[#4A4A4A] font-medium text-sm">{firm}</span>
-                                ))}
-                            </div>
+                <div className="overflow-hidden relative">
+                    <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-[#080808] to-transparent z-10 pointer-events-none" />
+                    <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-[#080808] to-transparent z-10 pointer-events-none" />
+                    <div className="marquee-track">
+                        {[
+                            'S.R. Batliboi & Co.', 'Lodha & Co.', 'Nanubhai & Co.', 'PKF India',
+                            'MSKA & Associates', 'Deloitte India', 'Walker Chandiok', 'A.F. Ferguson & Co.',
+                            'S.R. Batliboi & Co.', 'Lodha & Co.', 'Nanubhai & Co.', 'PKF India',
+                            'MSKA & Associates', 'Deloitte India', 'Walker Chandiok', 'A.F. Ferguson & Co.',
+                        ].map((firm, i) => (
+                            <span key={i} className="text-[#2A2A2A] font-medium text-sm mx-10 whitespace-nowrap hover:text-[#4A4A4A] transition-colors cursor-default">
+                                {firm}
+                            </span>
                         ))}
                     </div>
                 </div>
@@ -578,6 +653,8 @@ export default function LandingPage() {
                 </div>
             </Section>
 
+            <div className="h-px bg-gradient-to-r from-transparent via-[#1F1F1F] to-transparent" />
+
             {/* ── HOW IT WORKS ─────────────────────────────────── */}
             <Section id="how-it-works" className="bg-[#0A0A0A]">
                 <FadeInSection className="text-center mb-16">
@@ -587,38 +664,52 @@ export default function LandingPage() {
                     <p className="text-[#8A8A8A] text-lg">No editing. No formatting. Just press record and walk through the process.</p>
                 </FadeInSection>
 
-                <div className="grid md:grid-cols-3 gap-8">
+                <div className="grid md:grid-cols-3 gap-8 relative">
+                    {/* Connecting lines */}
+                    <div className="hidden md:block absolute top-[52px] left-[16.66%] w-[66.66%] h-px border-t border-dashed border-[#2A2A2A] pointer-events-none" />
+
                     {[
                         {
                             num: '01',
                             title: 'Press Record',
                             desc: 'Hit the record button while you work. Do the task naturally — filing a return, entering entries, making MCA filings. SOPify captures every click.',
-                            icon: '⏺',
+                            icon: Video,
+                            href: '/app/record'
                         },
                         {
                             num: '02',
                             title: 'AI writes the steps',
                             desc: 'Our AI analyzes your screen recording and writes clear, numbered instructions with annotated screenshots automatically. You review, edit, publish.',
-                            icon: '✨',
+                            icon: Sparkles,
                         },
                         {
                             num: '03',
                             title: 'Share with your team',
                             desc: 'Publish to your firm\'s library instantly. Your juniors find answers themselves. Partners stop repeating themselves. Knowledge stays forever.',
-                            icon: '📤',
+                            icon: Share2,
                         },
                     ].map((step, i) => (
-                        <FadeInSection key={step.num} delay={i * 0.15}>
-                            <div className="text-center space-y-4">
-                                <div className="text-4xl mb-4">{step.icon}</div>
-                                <span className="text-5xl font-mono font-bold text-[#6366F1]/30">{step.num}</span>
-                                <h3 className="text-xl font-bold text-[#F9F9F9]">{step.title}</h3>
-                                <p className="text-[#8A8A8A] leading-relaxed text-sm">{step.desc}</p>
+                        <FadeInSection key={step.num} delay={i * 0.15} className="relative z-10 text-center flex flex-col items-center space-y-4">
+                            <div className="w-14 h-14 rounded-2xl bg-[#111111] border border-[#1F1F1F] flex items-center justify-center mb-2 z-10 relative">
+                                <step.icon className="w-6 h-6 text-[#6366F1]" />
                             </div>
+                            <span className="text-sm font-mono font-bold text-[#6366F1]/80">Step {step.num}</span>
+                            <h3 className="text-xl font-bold text-[#F9F9F9]">{step.title}</h3>
+                            <p className="text-[#8A8A8A] leading-relaxed text-sm">
+                                {step.href ? (
+                                    <Link href={step.href} className="text-[#6366F1] hover:underline hover:text-[#818CF8] transition-colors">
+                                        {step.desc}
+                                    </Link>
+                                ) : (
+                                    step.desc
+                                )}
+                            </p>
                         </FadeInSection>
                     ))}
                 </div>
             </Section>
+
+            <div className="h-px bg-gradient-to-r from-transparent via-[#1F1F1F] to-transparent" />
 
             {/* ── FEATURES BENTO ───────────────────────────────── */}
             <Section id="features">
@@ -632,32 +723,23 @@ export default function LandingPage() {
                 </FadeInSection>
 
                 {/* Bento grid */}
-                <div className="grid grid-cols-3 grid-rows-3 gap-4" style={{ gridTemplateRows: 'auto auto auto' }}>
-                    {/* Large - top left */}
-                    <FadeInSection className="col-span-2 row-span-1">
-                        <BentoCard className="h-full">
+                <div className="grid grid-cols-6 gap-4">
+                    {/* Large card — col-span-4 */}
+                    <FadeInSection className="col-span-6 md:col-span-4 h-full">
+                        <BentoCard className="h-full flex flex-col">
                             <div className="flex gap-2 mb-4">
                                 <span className="text-2xl">🎥</span>
                                 <div>
                                     <p className="font-bold text-[#F9F9F9] text-lg">Screen Record → Auto SOP</p>
-                                    <p className="text-sm text-[#8A8A8A] mt-1">No editing required. The hardest part is pressing record.</p>
+                                    <p className="text-sm text-[#8A8A8A] mt-1">Click Record in SOPify. Pick your screen — full desktop, Tally window, Excel, or browser tab. Do the task. Stop recording. That's it.</p>
                                 </div>
                             </div>
-                            {/* Terminal animation */}
-                            <div className="bg-[#0D0D0D] rounded-xl border border-[#1F1F1F] p-4 font-mono text-xs space-y-1.5">
-                                <p className="text-[#4A4A4A]">$ Recording screen... 00:45</p>
-                                <p className="text-[#22C55E]">✓ Recording complete. Analyzing 45 screenshots...</p>
-                                <p className="text-[#818CF8]">⚡ AI generating step descriptions...</p>
-                                <p className="text-[#F9F9F9]">✓ Step 1: Navigate to GST Portal and login</p>
-                                <p className="text-[#F9F9F9]">✓ Step 2: Click "File Returns" in navigation</p>
-                                <p className="text-[#F9F9F9]">✓ Step 3: Select GSTR-1 and return period</p>
-                                <p className="text-[#4A4A4A] animate-pulse">✦ Generating step 4...</p>
-                            </div>
+                            <TerminalAnimation />
                         </BentoCard>
                     </FadeInSection>
 
-                    {/* CA Categories - top right */}
-                    <FadeInSection delay={0.1}>
+                    {/* Medium card — col-span-2 */}
+                    <FadeInSection delay={0.1} className="col-span-6 md:col-span-2">
                         <BentoCard className="h-full">
                             <p className="font-bold text-[#F9F9F9] mb-1">CA-Specific Categories</p>
                             <p className="text-sm text-[#8A8A8A] mb-4">Every category your firm needs, pre-built.</p>
@@ -673,8 +755,8 @@ export default function LandingPage() {
                         </BentoCard>
                     </FadeInSection>
 
-                    {/* AI writes every step - wide middle */}
-                    <FadeInSection className="col-span-3" delay={0.15}>
+                    {/* Wide card — col-span-6 */}
+                    <FadeInSection className="col-span-6" delay={0.15}>
                         <BentoCard>
                             <div className="grid md:grid-cols-2 gap-8 items-center">
                                 <div>
@@ -688,24 +770,25 @@ export default function LandingPage() {
                                         <p className="text-[10px] font-mono text-[#4A4A4A] mb-2 uppercase">Before AI</p>
                                         <p className="text-xs text-[#4A4A4A] italic">Click submit...</p>
                                     </div>
-                                    <div className="bg-[#0D0D0D] border border-[#6366F1]/30 rounded-xl p-4">
-                                        <p className="text-[10px] font-mono text-[#6366F1] mb-2 uppercase">After AI ✨</p>
-                                        <p className="text-xs text-[#F9F9F9] leading-relaxed">Click the blue "SUBMIT" button at the bottom of the return summary page. A confirmation dialog will appear — verify the total tax liability matches your working sheet before clicking "Confirm Filing".</p>
+                                    <div className="bg-[#0D0D0D] border border-[#6366F1]/30 rounded-xl p-4 relative overflow-hidden">
+                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#6366F1]/5 to-transparent shimmer" />
+                                        <p className="relative text-[10px] font-mono text-[#6366F1] mb-2 uppercase">After AI ✨</p>
+                                        <p className="relative text-xs text-[#F9F9F9] leading-relaxed">Click the blue "SUBMIT" button at the bottom of the return summary page. A confirmation dialog will appear — verify the total tax liability matches your working sheet before clicking "Confirm Filing".</p>
                                     </div>
                                 </div>
                             </div>
                         </BentoCard>
                     </FadeInSection>
 
-                    {/* Small cards bottom */}
+                    {/* 4 small cards — col-span-3 each (2 per row on md) */}
                     {[
                         { icon: Share2, title: 'Shareable Links', desc: 'Send via WhatsApp in one tap' },
                         { icon: Search, title: 'Searchable Library', desc: 'Full-text search across all SOPs' },
                         { icon: FileText, title: 'Step-by-Step Viewer', desc: 'Guided mode for junior staff' },
                         { icon: Smartphone, title: 'Mobile Friendly', desc: 'Works on any device or screen' },
                     ].map((item, i) => (
-                        <FadeInSection key={item.title} delay={i * 0.1}>
-                            <BentoCard>
+                        <FadeInSection key={item.title} delay={i * 0.1} className="col-span-6 md:col-span-3">
+                            <BentoCard className="h-full">
                                 <item.icon className="w-5 h-5 text-[#6366F1] mb-3" />
                                 <p className="font-semibold text-[#F9F9F9] text-sm mb-1">{item.title}</p>
                                 <p className="text-xs text-[#8A8A8A]">{item.desc}</p>
@@ -813,7 +896,10 @@ export default function LandingPage() {
                                 <div className="flex gap-1 mb-6">
                                     {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 fill-[#F59E0B] text-[#F59E0B]" />)}
                                 </div>
-                                <p className="text-[#F9F9F9] italic leading-relaxed flex-1 text-base mb-6">"{t.quote}"</p>
+                                <div className="relative mb-6 flex-1">
+                                    <span className="absolute -top-6 -left-2 text-8xl text-[#6366F1]/10 font-serif leading-none select-none">"</span>
+                                    <p className="relative text-[#F9F9F9] italic leading-relaxed text-base">"{t.quote}"</p>
+                                </div>
                                 <hr className="border-[#1F1F1F] mb-6" />
                                 <div>
                                     <p className="font-semibold text-[#F9F9F9]">{t.name}</p>

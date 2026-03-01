@@ -1,12 +1,12 @@
 'use client'
-import React from 'react'
+import React, { useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { mockSops, type Sop } from '@/lib/data'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
-import { TrendingUp, Eye, FileText, Plus, ArrowUpRight } from 'lucide-react'
+import { TrendingUp, Eye, FileText, Plus, ArrowUpRight, Search, Share2, Users } from 'lucide-react'
 
 function SopListItem({ sop }: { sop: Sop }) {
     return (
@@ -40,6 +40,9 @@ function SopListItem({ sop }: { sop: Sop }) {
 }
 
 export default function Dashboard() {
+    useEffect(() => {
+        document.title = "Dashboard | SOPify"
+    }, [])
     const recentSops = mockSops.slice(0, 5)
     const mostViewedSops = [...mockSops].sort((a, b) => b.views - a.views).slice(0, 5)
 
@@ -72,6 +75,21 @@ export default function Dashboard() {
                 </Link>
             </motion.div>
 
+            {/* Activity Feed */}
+            <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+                className="mb-8 p-4 rounded-xl bg-[#6366F1]/8 border border-[#6366F1]/20 flex items-center gap-3"
+            >
+                <span className="w-2 h-2 rounded-full bg-[#22C55E] animate-pulse flex-shrink-0" />
+                <p className="text-sm text-[#8A8A8A]">
+                    <span className="text-[#F9F9F9] font-medium">Priya Mehta</span> created a new SOP —
+                    <span className="text-[#6366F1] cursor-pointer hover:underline"> New Client Onboarding Process</span>
+                    <span className="text-[#4A4A4A] ml-2 text-xs">2 hours ago</span>
+                </p>
+            </motion.div>
+
             {/* Stats */}
             <motion.div
                 variants={container}
@@ -95,6 +113,31 @@ export default function Dashboard() {
                             </div>
                         </Card>
                     </motion.div>
+                ))}
+            </motion.div>
+
+            {/* Quick Actions */}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+                className="grid grid-cols-4 gap-3 mb-10"
+            >
+                {[
+                    { icon: Plus, label: 'New SOP', desc: 'Document a process', href: '/app/create', accent: '#6366F1' },
+                    { icon: Search, label: 'Search Library', desc: 'Find any SOP instantly', href: '/app/library', accent: '#22C55E' },
+                    { icon: Share2, label: 'Share SOP', desc: 'Send via WhatsApp', href: '/app/library', accent: '#F59E0B' },
+                    { icon: Users, label: 'Invite Team', desc: 'Add team members', href: '/app/settings', accent: '#A855F7' },
+                ].map(action => (
+                    <Link key={action.label} href={action.href}>
+                        <div className="bg-[#111111] border border-[#1F1F1F] rounded-xl p-4 hover:border-[#6366F1] transition-all duration-200 cursor-pointer group hover:shadow-[0_4px_20px_rgba(99,102,241,0.1)]">
+                            <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-3" style={{ background: `${action.accent}20` }}>
+                                <action.icon className="w-4 h-4" style={{ color: action.accent }} />
+                            </div>
+                            <p className="text-sm font-semibold text-[#F9F9F9]">{action.label}</p>
+                            <p className="text-xs text-[#4A4A4A] mt-0.5">{action.desc}</p>
+                        </div>
+                    </Link>
                 ))}
             </motion.div>
 

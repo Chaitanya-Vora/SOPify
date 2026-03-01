@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useRef, useCallback } from 'react'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence, Reorder } from 'framer-motion'
 import { useToast } from '@/components/ui/Toast'
 import { Button } from '@/components/ui/Button'
@@ -85,7 +85,7 @@ function DrawHighlight({ imageUrl, highlight, onSave, onCancel }: DrawHighlightP
         <div className="space-y-3">
             <p className="text-xs text-[#8A8A8A]">Click and drag to draw a highlight box on the screenshot.</p>
             <div className="relative rounded-lg overflow-hidden border border-[#2A2A2A]">
-                <img ref={imgRef} src={imageUrl} alt="step" className="hidden" onLoad={draw} />
+                <img ref={imgRef} src={imageUrl} alt="step" className="hidden" onLoad={draw} loading="lazy" />
                 <canvas
                     ref={canvasRef}
                     width={600}
@@ -172,7 +172,7 @@ function StepEditor({ step, onUpdate, onDelete }: StepEditorProps) {
                         />
                     ) : (
                         <div className="relative group rounded-lg overflow-hidden border border-[#2A2A2A]">
-                            <img src={step.imageUrl} alt="screenshot" className="w-full rounded-lg max-h-64 object-contain bg-[#0D0D0D]" />
+                            <img src={step.imageUrl} alt="screenshot" className="w-full rounded-lg max-h-64 object-contain bg-[#0D0D0D]" loading="lazy" />
                             {step.highlight && (
                                 <div
                                     className="absolute border-2 border-amber-400 bg-amber-400/20 rounded"
@@ -212,10 +212,11 @@ function StepEditor({ step, onUpdate, onDelete }: StepEditorProps) {
                         onClick={generateAI}
                         loading={aiLoading}
                         disabled={aiLoading || aiStreaming}
-                        className="text-[#6366F1] hover:text-[#818CF8]"
+                        className="relative overflow-hidden text-[#818CF8] bg-[#6366F1]/15 hover:bg-[#6366F1]/25 border border-[#6366F1]/30 transition-all group"
                         icon={!aiLoading ? <Sparkles className="w-3.5 h-3.5" /> : undefined}
                     >
-                        {aiLoading ? 'Generating...' : aiStreaming ? 'Writing...' : '✨ Generate with AI'}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#F9F9F9]/20 to-transparent shimmer opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <span className="relative z-10">{aiLoading ? 'Generating...' : aiStreaming ? 'Writing...' : 'Generate with AI'}</span>
                     </Button>
                 </div>
                 <textarea
@@ -231,6 +232,9 @@ function StepEditor({ step, onUpdate, onDelete }: StepEditorProps) {
 }
 
 export default function CreateSOP() {
+    useEffect(() => {
+        document.title = "Create SOP | SOPify"
+    }, [])
     const { addToast } = useToast()
     const [title, setTitle] = useState('')
     const [category, setCategory] = useState<SopCategory>('GST')
@@ -287,157 +291,165 @@ export default function CreateSOP() {
     }
 
     return (
-        <div className="p-8 max-w-4xl">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-[#F9F9F9] tracking-tight">Create New SOP</h1>
-                <p className="text-[#8A8A8A] text-sm mt-1">Document a process so your team can follow it independently</p>
-            </div>
-
-            {/* Section 1: SOP Details */}
-            <div className="bg-[#111111] border border-[#1F1F1F] rounded-xl p-8 mb-6 space-y-6">
-                <h2 className="text-base font-semibold text-[#F9F9F9]">SOP Details</h2>
-
-                <Input
-                    label="Title"
-                    value={title}
-                    onChange={e => setTitle(e.target.value)}
-                    placeholder="e.g., How to file GSTR-1 on GST Portal"
-                />
-
-                <div className="grid grid-cols-2 gap-4">
-                    <Select
-                        label="Category"
-                        value={category}
-                        onChange={e => setCategory(e.target.value as SopCategory)}
-                        options={categories}
-                    />
-                    <div>
-                        <label className="text-sm font-medium text-[#F9F9F9] block mb-1.5">Visibility</label>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => setVisibility('firm')}
-                                className={cn(
-                                    'flex-1 h-11 rounded-lg border text-sm font-medium transition-all',
-                                    visibility === 'firm'
-                                        ? 'bg-[#6366F1]/15 border-[#6366F1] text-[#818CF8]'
-                                        : 'bg-transparent border-[#1F1F1F] text-[#8A8A8A] hover:border-[#6366F1]'
-                                )}
-                            >
-                                Firm Only
-                            </button>
-                            <button
-                                onClick={() => setVisibility('link')}
-                                className={cn(
-                                    'flex-1 h-11 rounded-lg border text-sm font-medium transition-all',
-                                    visibility === 'link'
-                                        ? 'bg-[#6366F1]/15 border-[#6366F1] text-[#818CF8]'
-                                        : 'bg-transparent border-[#1F1F1F] text-[#8A8A8A] hover:border-[#6366F1]'
-                                )}
-                            >
-                                Anyone with Link
-                            </button>
-                        </div>
-                        <p className="text-xs text-[#4A4A4A] mt-1.5">
-                            {visibility === 'firm' ? 'Only team members can access this SOP.' : 'Anyone with the link can view this SOP — great for sharing with clients.'}
-                        </p>
-                    </div>
-                </div>
-
-                {/* Tags */}
+        <div className="flex flex-col min-h-screen relative">
+            {/* Sticky Header */}
+            <header className="sticky top-0 z-40 bg-[rgba(8,8,8,0.95)] backdrop-blur-xl border-b border-[#1F1F1F] px-8 py-4 flex items-center justify-between -mx-8 sm:mx-0">
                 <div>
-                    <label className="text-sm font-medium text-[#F9F9F9] block mb-1.5">Tags</label>
-                    <div className="flex flex-wrap gap-2 mb-2">
-                        {tags.map(tag => (
-                            <span key={tag} className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#1F1F1F] text-xs text-[#8A8A8A] border border-[#2A2A2A]">
-                                {tag}
-                                <button onClick={() => setTags(prev => prev.filter(t => t !== tag))} className="text-[#4A4A4A] hover:text-[#EF4444]">
-                                    <X className="w-3 h-3" />
-                                </button>
-                            </span>
-                        ))}
-                    </div>
-                    <input
-                        value={tagInput}
-                        onChange={e => setTagInput(e.target.value)}
-                        onKeyDown={addTag}
-                        placeholder="Type and press Enter to add tags..."
-                        className="w-full h-11 px-4 rounded-lg bg-[#0D0D0D] border border-[#1F1F1F] text-[#F9F9F9] text-sm placeholder:text-[#4A4A4A] focus:outline-none focus:ring-2 focus:ring-[#6366F1]"
+                    <h1 className="text-lg font-bold text-[#F9F9F9] tracking-tight">{title || 'Untitled SOP'}</h1>
+                    <p className="text-[#8A8A8A] text-xs mt-0.5">Draft · Auto-saved just now</p>
+                </div>
+                <div className="flex gap-3">
+                    <Button variant="secondary" size="sm" onClick={handleSave} loading={saving}>Save Draft</Button>
+                    <Button variant="primary" size="sm" onClick={handlePublish} loading={publishing}>Publish</Button>
+                </div>
+            </header>
+
+            <div className="p-8 max-w-4xl w-full mx-auto flex-1 pt-12">
+                <div className="mb-8">
+                    <h1 className="text-3xl font-bold text-[#F9F9F9] tracking-tight">Create New SOP</h1>
+                    <p className="text-[#8A8A8A] text-sm mt-1">Document a process so your team can follow it independently</p>
+                </div>
+
+                {/* Section 1: SOP Details */}
+                <div className="bg-[#111111] border border-[#1F1F1F] rounded-xl p-8 mb-6 space-y-6">
+                    <h2 className="text-base font-semibold text-[#F9F9F9]">SOP Details</h2>
+
+                    <Input
+                        label="Title"
+                        value={title}
+                        onChange={e => setTitle(e.target.value)}
+                        placeholder="e.g., How to file GSTR-1 on GST Portal"
                     />
-                    <p className="text-xs text-[#4A4A4A] mt-1.5">Press Enter or comma to add a tag. E.g., GSTR-1, Monthly Filing</p>
-                </div>
 
-                <Textarea
-                    label="Description (optional)"
-                    value={description}
-                    onChange={e => setDescription(e.target.value)}
-                    rows={3}
-                    placeholder="Brief overview of what this SOP covers..."
-                />
-            </div>
-
-            {/* Section 2: Add Steps */}
-            <div className="bg-[#111111] border border-[#1F1F1F] rounded-xl p-8 mb-8 space-y-6">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h2 className="text-base font-semibold text-[#F9F9F9]">Add Steps</h2>
-                        <p className="text-xs text-[#8A8A8A] mt-0.5">{steps.length} steps added</p>
-                    </div>
-                    <Button variant="secondary" size="sm" onClick={addStep} icon={<Plus className="w-3.5 h-3.5" />}>
-                        Add Step
-                    </Button>
-                </div>
-
-                {steps.length === 0 ? (
-                    <div
-                        onClick={addStep}
-                        className="border-2 border-dashed border-[#1F1F1F] rounded-xl p-12 flex flex-col items-center gap-3 cursor-pointer hover:border-[#6366F1] transition-colors"
-                    >
-                        <div className="w-12 h-12 rounded-full bg-[#1F1F1F] flex items-center justify-center">
-                            <Plus className="w-5 h-5 text-[#4A4A4A]" />
+                    <div className="grid grid-cols-2 gap-4">
+                        <Select
+                            label="Category"
+                            value={category}
+                            onChange={e => setCategory(e.target.value as SopCategory)}
+                            options={categories}
+                        />
+                        <div>
+                            <label className="text-sm font-medium text-[#F9F9F9] block mb-1.5">Visibility</label>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setVisibility('firm')}
+                                    className={cn(
+                                        'flex-1 h-11 rounded-lg border text-sm font-medium transition-all',
+                                        visibility === 'firm'
+                                            ? 'bg-[#6366F1]/15 border-[#6366F1] text-[#818CF8]'
+                                            : 'bg-transparent border-[#1F1F1F] text-[#8A8A8A] hover:border-[#6366F1]'
+                                    )}
+                                >
+                                    Firm Only
+                                </button>
+                                <button
+                                    onClick={() => setVisibility('link')}
+                                    className={cn(
+                                        'flex-1 h-11 rounded-lg border text-sm font-medium transition-all',
+                                        visibility === 'link'
+                                            ? 'bg-[#6366F1]/15 border-[#6366F1] text-[#818CF8]'
+                                            : 'bg-transparent border-[#1F1F1F] text-[#8A8A8A] hover:border-[#6366F1]'
+                                    )}
+                                >
+                                    Anyone with Link
+                                </button>
+                            </div>
+                            <p className="text-xs text-[#4A4A4A] mt-1.5">
+                                {visibility === 'firm' ? 'Only team members can access this SOP.' : 'Anyone with the link can view this SOP — great for sharing with clients.'}
+                            </p>
                         </div>
-                        <p className="text-sm text-[#8A8A8A]">Add your first step</p>
-                        <p className="text-xs text-[#4A4A4A]">Upload a screenshot or start with a description</p>
                     </div>
-                ) : (
-                    <Reorder.Group axis="y" values={steps} onReorder={handleReorder} className="space-y-4">
-                        {steps.map(step => (
-                            <Reorder.Item
-                                key={step.id}
-                                value={step}
-                                className="relative"
-                            >
-                                <div className="flex gap-3">
-                                    <div className="flex items-center justify-center w-6 pt-6 cursor-grab flex-shrink-0">
-                                        <GripVertical className="w-4 h-4 text-[#4A4A4A]" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <StepEditor
-                                            step={step}
-                                            onUpdate={updated => updateStep(step.id, updated)}
-                                            onDelete={() => deleteStep(step.id)}
-                                        />
-                                    </div>
-                                </div>
-                            </Reorder.Item>
-                        ))}
-                    </Reorder.Group>
-                )}
 
-                {steps.length > 0 && (
-                    <Button variant="ghost" size="sm" onClick={addStep} icon={<Plus className="w-3.5 h-3.5" />} className="w-full border border-dashed border-[#1F1F1F] hover:border-[#6366F1]">
-                        Add another step
-                    </Button>
-                )}
-            </div>
+                    {/* Tags */}
+                    <div>
+                        <label className="text-sm font-medium text-[#F9F9F9] block mb-1.5">Tags</label>
+                        <div className="flex flex-wrap gap-2 mb-2">
+                            {tags.map(tag => (
+                                <span key={tag} className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#1F1F1F] text-xs text-[#8A8A8A] border border-[#2A2A2A]">
+                                    {tag}
+                                    <button onClick={() => setTags(prev => prev.filter(t => t !== tag))} className="text-[#4A4A4A] hover:text-[#EF4444]">
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                </span>
+                            ))}
+                        </div>
+                        <input
+                            value={tagInput}
+                            onChange={e => setTagInput(e.target.value)}
+                            onKeyDown={addTag}
+                            placeholder="Type and press Enter to add tags..."
+                            className="w-full h-11 px-4 rounded-lg bg-[#0D0D0D] border border-[#1F1F1F] text-[#F9F9F9] text-sm placeholder:text-[#4A4A4A] focus:outline-none focus:ring-2 focus:ring-[#6366F1]"
+                        />
+                        <p className="text-xs text-[#4A4A4A] mt-1.5">Press Enter or comma to add a tag. E.g., GSTR-1, Monthly Filing</p>
+                    </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-4 justify-end">
-                <Button variant="secondary" onClick={handleSave} loading={saving}>
-                    Save as Draft
-                </Button>
-                <Button variant="primary" onClick={handlePublish} loading={publishing}>
-                    Publish SOP →
-                </Button>
+                    <Textarea
+                        label="Description (optional)"
+                        value={description}
+                        onChange={e => setDescription(e.target.value)}
+                        rows={3}
+                        placeholder="Brief overview of what this SOP covers..."
+                    />
+                </div>
+
+                {/* Section 2: Add Steps */}
+                <div className="bg-[#111111] border border-[#1F1F1F] rounded-xl p-8 mb-8 space-y-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h2 className="text-base font-semibold text-[#F9F9F9]">Add Steps</h2>
+                            {steps.length > 0 ? (
+                                <p className="text-xs text-[#6366F1] font-mono mt-1 tracking-widest uppercase">Step {steps.length} mapped</p>
+                            ) : (
+                                <p className="text-xs text-[#8A8A8A] mt-0.5">0 steps added</p>
+                            )}
+                        </div>
+                        <Button variant="secondary" size="sm" onClick={addStep} icon={<Plus className="w-3.5 h-3.5" />}>
+                            Add Step
+                        </Button>
+                    </div>
+
+                    {steps.length === 0 ? (
+                        <div
+                            onClick={addStep}
+                            className="border-2 border-dashed border-[#1F1F1F] rounded-xl p-12 flex flex-col items-center gap-3 cursor-pointer hover:border-[#6366F1] transition-colors"
+                        >
+                            <div className="w-12 h-12 rounded-full bg-[#1F1F1F] flex items-center justify-center">
+                                <Plus className="w-5 h-5 text-[#4A4A4A]" />
+                            </div>
+                            <p className="text-sm text-[#8A8A8A]">Add your first step</p>
+                            <p className="text-xs text-[#4A4A4A]">Upload a screenshot or start with a description</p>
+                        </div>
+                    ) : (
+                        <Reorder.Group axis="y" values={steps} onReorder={handleReorder} className="space-y-4">
+                            {steps.map(step => (
+                                <Reorder.Item
+                                    key={step.id}
+                                    value={step}
+                                    className="relative"
+                                >
+                                    <div className="flex gap-3">
+                                        <div className="flex items-center justify-center w-6 pt-6 cursor-grab flex-shrink-0">
+                                            <GripVertical className="w-4 h-4 text-[#4A4A4A]" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <StepEditor
+                                                step={step}
+                                                onUpdate={updated => updateStep(step.id, updated)}
+                                                onDelete={() => deleteStep(step.id)}
+                                            />
+                                        </div>
+                                    </div>
+                                </Reorder.Item>
+                            ))}
+                        </Reorder.Group>
+                    )}
+
+                    {steps.length > 0 && (
+                        <Button variant="ghost" size="sm" onClick={addStep} icon={<Plus className="w-3.5 h-3.5" />} className="w-full border border-dashed border-[#1F1F1F] hover:border-[#6366F1]">
+                            Add another step
+                        </Button>
+                    )}
+                </div>
             </div>
         </div>
     )

@@ -27,6 +27,14 @@ export default function SopViewer() {
     const step = sop?.steps[currentStep]
     const progress = sop ? ((currentStep + 1) / sop.steps.length) * 100 : 0
 
+    useEffect(() => {
+        if (sop) {
+            document.title = `${sop.title} | SOPify`
+        } else {
+            document.title = "SOP Viewer | SOPify"
+        }
+    }, [sop])
+
     // Draw highlight on canvas
     useEffect(() => {
         const canvas = canvasRef.current
@@ -132,6 +140,36 @@ export default function SopViewer() {
 
             {/* Main content */}
             <div className="flex-1 pt-[57px] flex">
+                {/* Left sidebar - steps navigation */}
+                <div className="w-64 flex-shrink-0 py-10 pl-6 hidden xl:block border-r border-[#1F1F1F]/50">
+                    <div className="sticky top-24 pr-4">
+                        <h3 className="text-xs font-medium text-[#8A8A8A] uppercase tracking-widest mb-6">Steps in this SOP</h3>
+                        <div className="space-y-1 relative">
+                            {/* Vertical line indicator */}
+                            <div className="absolute left-[7px] top-2 bottom-2 w-px bg-[#1F1F1F]" />
+
+                            {sop.steps.map((s, i) => {
+                                const isActive = currentStep === i && !completed
+                                const isPast = completed || currentStep > i
+                                return (
+                                    <button
+                                        key={i}
+                                        onClick={() => { setCurrentStep(i); setCompleted(false) }}
+                                        className={`w-full text-left flex gap-3 p-2 rounded-lg transition-colors group relative z-10 ${isActive ? 'bg-[#111111]' : 'hover:bg-[#111111]/50'}`}
+                                    >
+                                        <div className={`w-3.5 h-3.5 rounded-full mt-0.5 flex-shrink-0 flex items-center justify-center transition-colors ${isActive ? 'bg-[#6366F1] ring-4 ring-[#6366F1]/20' : isPast ? 'bg-[#6366F1]/50' : 'bg-[#1F1F1F] group-hover:bg-[#4A4A4A]'}`}>
+                                            {isPast && <CheckCircle className="w-2.5 h-2.5 text-[#080808]" />}
+                                        </div>
+                                        <span className={`text-sm tracking-tight truncate transition-colors ${isActive ? 'text-[#F9F9F9] font-medium' : isPast ? 'text-[#8A8A8A]' : 'text-[#8A8A8A] group-hover:text-[#F9F9F9]'}`}>
+                                            {s.title || `Step ${i + 1}`}
+                                        </span>
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    </div>
+                </div>
+
                 {/* Step content */}
                 <div className="flex-1 flex flex-col max-w-[900px] mx-auto w-full px-6 py-10">
                     <AnimatePresence mode="wait">
@@ -168,7 +206,7 @@ export default function SopViewer() {
                                 initial={{ opacity: 0, x: 30 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: -30 }}
-                                transition={{ duration: 0.25 }}
+                                transition={{ duration: 0.2, ease: "easeInOut" }}
                                 className="flex-1 space-y-8"
                             >
                                 {/* Step header */}
@@ -181,19 +219,22 @@ export default function SopViewer() {
                                             {step?.title || `Step ${currentStep + 1}`}
                                         </h2>
                                     </div>
-                                    <div className="flex gap-2 flex-shrink-0">
+                                    <div className="flex gap-2 flex-shrink-0 items-center">
                                         <Badge category={sop.category}>{sop.category}</Badge>
+                                        <span className="text-xs font-mono text-[#8A8A8A] flex items-center bg-[#111111] px-2 py-1 rounded-md border border-[#1F1F1F]">
+                                            Est. 4 min
+                                        </span>
                                     </div>
                                 </div>
 
                                 {/* Image with highlight */}
                                 {step?.imageUrl ? (
                                     <div className="relative rounded-xl overflow-hidden border border-[#1F1F1F] bg-[#0D0D0D]">
-                                        <img ref={imgRef} src={step.imageUrl} alt="" className="hidden" />
+                                        <img ref={imgRef} src={step.imageUrl} alt="" className="hidden" loading="lazy" />
                                         {step.highlightCoords ? (
                                             <canvas ref={canvasRef} className="w-full" />
                                         ) : (
-                                            <img src={step.imageUrl} alt="Step screenshot" className="w-full max-h-[400px] object-contain" />
+                                            <img src={step.imageUrl} alt="Step screenshot" className="w-full max-h-[400px] object-contain" loading="lazy" />
                                         )}
                                     </div>
                                 ) : (

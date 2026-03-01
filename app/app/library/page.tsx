@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { mockSops, type Sop, type SopCategory } from '@/lib/data'
@@ -71,6 +71,10 @@ export default function Library() {
     const [category, setCategory] = useState<string>('all')
     const [sort, setSort] = useState<'newest' | 'views' | 'updated'>('newest')
     const [page, setPage] = useState(12)
+
+    useEffect(() => {
+        document.title = "SOP Library | SOPify"
+    }, [])
 
     const filtered = useMemo(() => {
         let result = [...mockSops]
@@ -152,7 +156,7 @@ export default function Library() {
                         variants={container}
                         initial="hidden"
                         animate="show"
-                        className="grid grid-cols-3 gap-4 mb-6"
+                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6"
                     >
                         {visible.map(sop => (
                             <motion.div key={sop.id} variants={item}>
