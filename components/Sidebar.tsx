@@ -27,14 +27,22 @@ const navItems = [
 export function Sidebar() {
     const { collapsed, setCollapsed, mobileOpen, setMobileOpen } = useSidebar()
     const pathname = usePathname()
+    const [isMobile, setIsMobile] = useState(false)
+
+    React.useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768)
+        checkMobile()
+        window.addEventListener('resize', checkMobile)
+        return () => window.removeEventListener('resize', checkMobile)
+    }, [])
 
     return (
         <motion.aside
             initial={false}
-            animate={{ width: collapsed ? 72 : 240 }}
+            animate={{ width: isMobile ? '80%' : (collapsed ? 72 : 240) }}
             transition={{ duration: 0.2, ease: 'easeInOut' }}
             className={cn(
-                "fixed left-0 top-0 h-screen bg-[#0D0D0D] border-r border-[#1F1F1F] flex flex-col z-[70] md:z-40 overflow-hidden transition-transform duration-300 md:translate-x-0",
+                "fixed left-0 top-0 h-screen bg-[#0D0D0D] border-r border-[#1F1F1F] flex flex-col z-[70] md:z-40 transition-transform duration-300 md:translate-x-0 will-change-transform",
                 mobileOpen ? "translate-x-0" : "-translate-x-full"
             )}
         >

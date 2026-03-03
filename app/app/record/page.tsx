@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
 import { cn } from '@/lib/utils'
-import { type SopCategory } from '@/lib/data'
+import { saveSop, type Sop, type SopCategory } from '@/lib/data'
 
 // ─── TYPES ────────────────────────────────────────────────────────
 interface GeneratedStep {
@@ -153,6 +153,18 @@ Return ONLY valid JSON. No markdown, no explanation.`
         })
     })
 
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        const msg = (errorData as any)?.error?.message || `API error ${response.status}`
+        if (response.status === 401) {
+            throw new Error('Invalid OpenAI API key. Please update your key in the Record page settings.')
+        }
+        if (response.status === 429) {
+            throw new Error('OpenAI rate limit reached. Wait 30 seconds and try again.')
+        }
+        throw new Error(`OpenAI API error: ${msg}`)
+    }
+
     const data = await response.json()
     const text = data.choices?.[0]?.message?.content || '{}'
     const cleaned = text.replace(/```json|```/g, '').trim()
@@ -214,6 +226,66 @@ export default function RecordPage() {
     }, [phase])
 
     const formatTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
+
+    // ── PROCESS RECORDING ───────────────────────────────────────────
+    const processRecording = useCallback(async (blob: Blob) => {
+        setPhase('processing')
+        setProcessingPct(5)
+        setProcessingMsg('Analyzing your recording...')
+
+        try {
+            // Step 1: Extract frames
+            const frames = await extractFramesFromVideo(blob, (pct, msg) => {
+                setProcessingPct(pct)
+                setProcessingMsg(msg)
+            })
+
+            if (frames.length === 0) {
+                addToast('Could not extract frames from recording. Please try again.', 'error')
+                setPhase('idle')
+                return
+            }
+
+            setProcessingPct(75)
+            setProcessingMsg(`Generating AI descriptions for ${frames.length} steps...`)
+
+            // Step 2: Generate AI descriptions for each frame
+            const activeKey = apiKey || null
+            const generatedSteps: GeneratedStep[] = []
+
+            for (let i = 0; i < frames.length; i++) {
+                setProcessingMsg(`Writing description for step ${i + 1} of ${frames.length}...`)
+                setProcessingPct(75 + Math.round((i / frames.length) * 20))
+
+                const { title, description } = await generateDescriptionForFrame(
+                    frames[i].imageDataUrl,
+                    i,
+                    activeKey
+                )
+
+                generatedSteps.push({
+                    id: `rec-step-${i}-${Date.now()}`,
+                    stepNumber: i + 1,
+                    title,
+                    description,
+                    imageDataUrl: frames[i].imageDataUrl,
+                    timestamp: frames[i].timestamp,
+                    isEditing: false,
+                })
+            }
+
+            setProcessingPct(100)
+            setProcessingMsg('Done! Review your generated SOP.')
+
+            await new Promise(r => setTimeout(r, 600))
+            setSteps(generatedSteps)
+            setPhase('reviewing')
+
+        } catch (err: any) {
+            addToast(`Processing failed: ${err.message}. Please try again.`, 'error')
+            setPhase('idle')
+        }
+    }, [apiKey])
 
     // ── START RECORDING ─────────────────────────────────────────────
     const startRecording = useCallback(async () => {
@@ -281,7 +353,7 @@ export default function RecordPage() {
                 addToast(`Could not start recording: ${err.message}`, 'error')
             }
         }
-    }, [])
+    }, [processRecording])
 
     // ── STOP RECORDING ──────────────────────────────────────────────
     const stopRecording = useCallback(() => {
@@ -290,66 +362,6 @@ export default function RecordPage() {
             setPhase('processing')
         }
     }, [])
-
-    // ── PROCESS RECORDING ───────────────────────────────────────────
-    const processRecording = useCallback(async (blob: Blob) => {
-        setPhase('processing')
-        setProcessingPct(5)
-        setProcessingMsg('Analyzing your recording...')
-
-        try {
-            // Step 1: Extract frames
-            const frames = await extractFramesFromVideo(blob, (pct, msg) => {
-                setProcessingPct(pct)
-                setProcessingMsg(msg)
-            })
-
-            if (frames.length === 0) {
-                addToast('Could not extract frames from recording. Please try again.', 'error')
-                setPhase('idle')
-                return
-            }
-
-            setProcessingPct(75)
-            setProcessingMsg(`Generating AI descriptions for ${frames.length} steps...`)
-
-            // Step 2: Generate AI descriptions for each frame
-            const activeKey = apiKey || null
-            const generatedSteps: GeneratedStep[] = []
-
-            for (let i = 0; i < frames.length; i++) {
-                setProcessingMsg(`Writing description for step ${i + 1} of ${frames.length}...`)
-                setProcessingPct(75 + Math.round((i / frames.length) * 20))
-
-                const { title, description } = await generateDescriptionForFrame(
-                    frames[i].imageDataUrl,
-                    i,
-                    activeKey
-                )
-
-                generatedSteps.push({
-                    id: `rec-step-${i}-${Date.now()}`,
-                    stepNumber: i + 1,
-                    title,
-                    description,
-                    imageDataUrl: frames[i].imageDataUrl,
-                    timestamp: frames[i].timestamp,
-                    isEditing: false,
-                })
-            }
-
-            setProcessingPct(100)
-            setProcessingMsg('Done! Review your generated SOP.')
-
-            await new Promise(r => setTimeout(r, 600))
-            setSteps(generatedSteps)
-            setPhase('reviewing')
-
-        } catch (err: any) {
-            addToast(`Processing failed: ${err.message}. Please try again.`, 'error')
-            setPhase('idle')
-        }
-    }, [apiKey])
 
     // ── STEP EDITING ────────────────────────────────────────────────
     const updateStep = (id: string, updates: Partial<GeneratedStep>) => {
@@ -377,10 +389,41 @@ export default function RecordPage() {
             addToast('You need at least one step to publish.', 'error')
             return
         }
+
         setPhase('publishing')
-        await new Promise(r => setTimeout(r, 2000))
-        addToast('SOP published successfully! Your team can now access it. 🎉', 'success')
-        // In real app: save to database here
+
+        // Build the SOP object
+        const newSop: Sop = {
+            id: `user-sop-${Date.now()}`,
+            title: sopTitle.trim(),
+            description: `Recorded SOP created on ${new Date().toLocaleDateString('en-IN', {
+                day: 'numeric', month: 'long', year: 'numeric'
+            })}`,
+            category: sopCategory,
+            tags: [],
+            creatorName: 'You',
+            creatorInitials: 'ME',
+            createdAt: new Date().toISOString().split('T')[0],
+            updatedAt: new Date().toISOString().split('T')[0],
+            views: 0,
+            visibility: 'firm',
+            isUserCreated: true,
+            steps: steps.map(s => ({
+                id: s.id,
+                stepNumber: s.stepNumber,
+                title: s.title,
+                description: s.description,
+                imageUrl: s.imageDataUrl || undefined,
+            })),
+        }
+
+        // Save to localStorage persistence layer
+        saveSop(newSop)
+
+        // Small delay for UX polish
+        await new Promise(r => setTimeout(r, 1200))
+
+        addToast(`"${sopTitle}" published to your library! 🎉`, 'success')
         window.location.href = '/app/library'
     }
 
@@ -390,6 +433,21 @@ export default function RecordPage() {
         if (typeof window !== 'undefined') localStorage.setItem('openai_key', key)
         setShowApiKeyInput(false)
         addToast('OpenAI API key saved. AI descriptions will now be generated from your actual screenshots.', 'success')
+    }
+
+    if (browserSupported === null) {
+        return (
+            <div className="p-8 flex items-center justify-center min-h-[400px]">
+                <div className="text-center space-y-3">
+                    <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                        className="w-8 h-8 rounded-full border-2 border-[#1F1F1F] border-t-[#6366F1] mx-auto"
+                    />
+                    <p className="text-xs text-[#4A4A4A] font-mono">Checking compatibility...</p>
+                </div>
+            </div>
+        )
     }
 
     if (browserSupported === false) {

@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { mockSops, type Sop } from '@/lib/data'
+import { getAllSops, mockSops, type Sop } from '@/lib/data'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -29,7 +29,7 @@ function SopListItem({ sop }: { sop: Sop }) {
                 <span className="flex items-center gap-1 text-xs text-[#4A4A4A]">
                     <Eye className="w-3 h-3" /> {sop.views}
                 </span>
-                <Link href={`/app/sop/${sop.id}`}>
+                <Link href={`/ app / sop / ${sop.id} `}>
                     <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
                         View
                     </Button>
@@ -43,11 +43,15 @@ export default function Dashboard() {
     useEffect(() => {
         document.title = "Dashboard | SOPify"
     }, [])
-    const recentSops = mockSops.slice(0, 5)
-    const mostViewedSops = [...mockSops].sort((a, b) => b.views - a.views).slice(0, 5)
+    const allSops = getAllSops()
+    const recentSops = allSops.slice(0, 5)
+    const mostViewedSops = [...allSops].sort((a, b) => b.views - a.views).slice(0, 5)
+
+    // Update total count stat dynamically
+    const totalCount = allSops.filter(s => s.isUserCreated).length
 
     const stats = [
-        { label: 'Total SOPs', value: '24', trend: '+3 this month', icon: FileText, color: '#6366F1' },
+        { label: 'Total SOPs', value: String(mockSops.length + totalCount), trend: '+3 this month', icon: FileText, color: '#6366F1' },
         { label: 'This Month', value: '6', trend: '+2 from last', icon: TrendingUp, color: '#22C55E' },
         { label: 'Total Views', value: '847', trend: '+124 this week', icon: Eye, color: '#818CF8' },
     ]
@@ -101,7 +105,7 @@ export default function Dashboard() {
                     <motion.div key={stat.label} variants={item}>
                         <Card className="flex items-start gap-4">
                             <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                                style={{ background: `${stat.color}20` }}>
+                                style={{ background: `${stat.color} 20` }}>
                                 <stat.icon className="w-5 h-5" style={{ color: stat.color }} />
                             </div>
                             <div>
@@ -131,7 +135,7 @@ export default function Dashboard() {
                 ].map(action => (
                     <Link key={action.label} href={action.href}>
                         <div className="bg-[#111111] border border-[#1F1F1F] rounded-xl p-4 hover:border-[#6366F1] transition-all duration-200 cursor-pointer group hover:shadow-[0_4px_20px_rgba(99,102,241,0.1)]">
-                            <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-3" style={{ background: `${action.accent}20` }}>
+                            <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-3" style={{ background: `${action.accent} 20` }}>
                                 <action.icon className="w-4 h-4" style={{ color: action.accent }} />
                             </div>
                             <p className="text-sm font-semibold text-[#F9F9F9]">{action.label}</p>

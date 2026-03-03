@@ -34,6 +34,14 @@ function CountUp({ target, suffix = '' }: { target: number, suffix?: string }) {
 function TerminalAnimation() {
     const ref = useRef(null)
     const inView = useInView(ref)
+    const [replayKey, setReplayKey] = useState(0)
+
+    useEffect(() => {
+        if (inView) {
+            setReplayKey(prev => prev + 1)
+        }
+    }, [inView])
+
     const lines = [
         { text: '$ Recording screen... 00:45', color: '#4A4A4A', delay: 0 },
         { text: '✓ Recording complete. Analyzing 45 screenshots...', color: '#22C55E', delay: 0.8 },
@@ -45,17 +53,22 @@ function TerminalAnimation() {
     ]
     return (
         <div ref={ref} className="bg-[#0D0D0D] rounded-xl border border-[#1F1F1F] p-4 font-mono text-xs space-y-1.5 min-h-[160px]">
-            {inView && lines.map((line, i) => (
-                <motion.p
-                    key={i}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: line.delay, duration: 0.3 }}
-                    style={{ color: line.color }}
-                >
-                    {line.text}
-                </motion.p>
-            ))}
+            {inView && (
+                <div key={replayKey}>
+                    {lines.map((line, i) => (
+                        <motion.p
+                            key={i}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: line.delay, duration: 0.3 }}
+                            style={{ color: line.color }}
+                            className="font-mono text-xs"
+                        >
+                            {line.text}
+                        </motion.p>
+                    ))}
+                </div>
+            )}
         </div>
     )
 }
@@ -546,12 +559,12 @@ export default function LandingPage() {
                                     Record your screen. AI writes the SOP. Done. <ArrowRight className="w-4 h-4" />
                                 </motion.button>
                             </Link>
-                            <Link href="/app/library">
+                            <Link href="/app/record">
                                 <motion.button
                                     whileTap={{ scale: 0.97 }}
                                     className="h-14 px-8 rounded-xl bg-transparent border border-[#1F1F1F] text-[#F9F9F9] font-semibold text-sm hover:border-[#6366F1] hover:bg-[#111111] transition-all duration-150 flex items-center gap-2"
                                 >
-                                    <Play className="w-4 h-4" /> See it in action
+                                    Try the recorder <ArrowRight className="w-4 h-4 ml-1" />
                                 </motion.button>
                             </Link>
                         </div>

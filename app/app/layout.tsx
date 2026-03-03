@@ -2,6 +2,7 @@
 import React, { useState } from 'react'
 import { Sidebar } from '@/components/Sidebar'
 import { SidebarContext } from '@/lib/sidebar-context'
+import { cn } from '@/lib/utils'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     const [collapsed, setCollapsed] = useState(false)
@@ -18,10 +19,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     />
                 )}
                 <Sidebar />
-                <main
-                    className="flex-1 overflow-x-hidden transition-all duration-200"
-                    style={{ marginLeft: collapsed ? 72 : 240 }}
-                >
+                <main className={cn(
+                    "flex-1 overflow-x-hidden transition-all duration-300 min-h-screen",
+                    collapsed ? "md:ml-[72px] ml-0" : "md:ml-[240px] ml-0"
+                )}>
                     {/* Mobile top bar */}
                     <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-[#1F1F1F] sticky top-0 bg-[#080808] z-20">
                         <button

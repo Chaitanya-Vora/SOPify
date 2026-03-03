@@ -6,6 +6,7 @@ export interface SopStep {
     title: string
     description: string
     imageUrl?: string
+    imageStorageUrl?: string
     highlightCoords?: { x: number; y: number; width: number; height: number }
     note?: string
 }
@@ -23,6 +24,9 @@ export interface Sop {
     views: number
     steps: SopStep[]
     visibility: 'firm' | 'link'
+    firmId?: string
+    creatorId?: string
+    isUserCreated?: boolean
 }
 
 export const mockSops: Sop[] = [
@@ -472,17 +476,85 @@ export const mockSops: Sop[] = [
     }
 ]
 
+// ─── PERSISTENCE LAYER ────────────────────────────────────────────
+// V1: localStorage. V2: swap these functions for Supabase calls.
+// All pages use these functions — never import mockSops directly.
+
+const STORAGE_KEY = 'sopify_sops_v1'
+
+export function getAllSops(): Sop[] {
+    if (typeof window === 'undefined') return mockSops
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY)
+        const userSops: Sop[] = raw ? JSON.parse(raw) : []
+        // User SOPs appear first (most recent), then mock SOPs
+        return [...userSops, ...mockSops]
+    } catch {
+        return mockSops
+    }
+}
+
+export function saveSop(sop: Sop): void {
+    if (typeof window === 'undefined') return
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY)
+        const existing: Sop[] = raw ? JSON.parse(raw) : []
+        // Replace if updating, prepend if new
+        const idx = existing.findIndex(s => s.id === sop.id)
+        if (idx >= 0) {
+            existing[idx] = sop
+        } else {
+            existing.unshift(sop)
+        }
+        // Keep last 100 user SOPs
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(existing.slice(0, 100)))
+    } catch {
+        console.error('SOPify: Failed to save SOP to localStorage')
+    }
+}
+
+export function deleteSop(id: string): void {
+    if (typeof window === 'undefined') return
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY)
+        const existing: Sop[] = raw ? JSON.parse(raw) : []
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(existing.filter(s => s.id !== id)))
+    } catch { }
+}
+
+export function incrementSopViews(id: string): void {
+    if (typeof window === 'undefined') return
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY)
+        const existing: Sop[] = raw ? JSON.parse(raw) : []
+        const idx = existing.findIndex(s => s.id === id)
+        if (idx >= 0) {
+            existing[idx].views = (existing[idx].views || 0) + 1
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(existing))
+        }
+        // For mock SOPs we don't persist view counts in V1
+    } catch { }
+}
+
 export function getSopById(id: string): Sop | undefined {
+    if (typeof window !== 'undefined') {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY)
+            const userSops: Sop[] = raw ? JSON.parse(raw) : []
+            const found = userSops.find(s => s.id === id)
+            if (found) return found
+        } catch { }
+    }
     return mockSops.find(sop => sop.id === id)
 }
 
 export function getSopsByCategory(category: SopCategory): Sop[] {
-    return mockSops.filter(sop => sop.category === category)
+    return getAllSops().filter(sop => sop.category === category)
 }
 
 export function searchSops(query: string): Sop[] {
     const lower = query.toLowerCase()
-    return mockSops.filter(sop =>
+    return getAllSops().filter(sop =>
         sop.title.toLowerCase().includes(lower) ||
         sop.description.toLowerCase().includes(lower) ||
         sop.tags.some(tag => tag.toLowerCase().includes(lower)) ||

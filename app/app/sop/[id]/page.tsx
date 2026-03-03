@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { getSopById } from '@/lib/data'
+import { getSopById, incrementSopViews } from '@/lib/data'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { ProgressBar } from '@/components/ui/ProgressBar'
@@ -34,6 +34,13 @@ export default function SopViewer() {
             document.title = "SOP Viewer | SOPify"
         }
     }, [sop])
+
+    // Track views
+    useEffect(() => {
+        if (id) {
+            incrementSopViews(id)
+        }
+    }, [id])
 
     // Draw highlight on canvas
     useEffect(() => {
